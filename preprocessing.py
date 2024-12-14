@@ -1,72 +1,30 @@
 import cv2
 import numpy as np
-from scipy.ndimage import interpolation as inter
+from wand.image import Image as WandImage
+from wand.color import Color
 
-def correctSkew(image, delta = 1, limit = 10):
-    """
-    Corrects skew in the input image for about +/- 10 degrees (Increase limit for larger degree).
-    
-    Parameters:
-        image: Input image in which skew needs to be corrected.
-        delta: Step size for angle increments during the search for the best angle.
-        limit: Range of angles to search in both directions (positive and negative).
-    
-    Returns:
-        corrected: The skew-corrected image.
-    """
 
-    def determine_score(arr, angle):
-        """
-        Computes a score for how aligned the text in the image is at a given angle.
+def correctSkew(input_image):
 
-        Parameters:
-            arr: Binary image array (e.g., thresholded image).
-            angle: Angle to rotate the image for scoring.
-        
-        Returns:
-            histogram: Sum of pixels along each row after rotation.
-            score: Metric indicating the alignment of the text.
-        """
+    # Converts input from np array into wand image object
+    wand_img = WandImage.from_array(input_image.astype(np.uint8), channel_map="BGR")
 
-        # Rotate image by given angle without changing dimensions
-        data = inter.rotate(arr, angle, reshape = True, order = 0)
+    # Removes the skew from the input image
+    wand_img.deskew(0.4*wand_img.quantum_range)
 
-        # Compute the sum of pixel values along each row (horrizontal projection)
-        histogram = np.sum(data, axis = 1, dtype = float)
+    # Converts wand image object back into np array
+    with wand_img:
+        wand_img.background_color = Color('white')
+        wand_img.format = 'jpg'
+        wand_img.alpha_channel = False
 
-        # Calculate allignment score based on differences between adjacent rows
-        score = np.sum((histogram[1:] - histogram[:-1]) ** 2, dtype = float)
-        return score
+        # Fill image buffer with numpy array from blob
+        img_buffer=np.asarray(bytearray(wand_img.make_blob()), dtype=np.uint8)
 
-    # Converts image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    
-    # Apply thresholding using Otsu's method
-    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    # Return the cv image (np array)
+    if img_buffer is not None:
+        return cv2.imdecode(img_buffer, cv2.IMREAD_UNCHANGED)
 
-    # Initialize list of scores for each angle
-    scores = []
-
-    # Generates a range of test angles to test for skew correction and computes the score for each angle
-    angles = np.arange(-limit, limit + delta, delta)
-    for angle in angles:
-        score = determine_score(thresh, angle)
-        scores.append(score)
-
-    # The angle with the maximum score has the best allignment
-    best_angle = angles[scores.index(min(scores))]
-
-    # Calculate center of image
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-
-    # Create rotation matrix M for the best angle and use it to rotate image
-    M = cv2.getRotationMatrix2D(center, best_angle, 1.0)
-    corrected_image = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, \
-            borderMode=cv2.BORDER_REPLICATE)
-    
-    return corrected_image
 
 def preprocesser(input_image):
     # Normalize image to between 0 and 255 (Creates uniform range for different input images)
