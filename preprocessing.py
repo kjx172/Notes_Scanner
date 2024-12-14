@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from wand.image import Image as WandImage
 from wand.color import Color
+from PIL import Image as PILImage
 
 
 def correctSkew(input_image):
@@ -25,6 +26,14 @@ def correctSkew(input_image):
     if img_buffer is not None:
         return cv2.imdecode(img_buffer, cv2.IMREAD_UNCHANGED)
 
+def scaleImage(input_image):
+    orig_width, orig_height = input_image.shape[1], input_image.shape[0]
+
+    # If original size is smaller than reccomended size
+    if (orig_width < 2550 and orig_height < 3300):
+        input_image = cv2.resize(input_image, (2550, 3300), interpolation = cv2.INTER_CUBIC)
+    
+    return input_image
 
 def preprocesser(input_image):
     # Normalize image to between 0 and 255 (Creates uniform range for different input images)
@@ -34,6 +43,10 @@ def preprocesser(input_image):
     # Skew correction
     unskewed_img = correctSkew(normalized_img)
 
-    cv2.imshow('unskewed_img',unskewed_img)
+    # Scale the image if under the reccomended pixel size for OCR for A4 letter paper
+    scaled_img = scaleImage(unskewed_img)
+
+    cv2.imwrite("output/output.jpg", scaled_img)
+    cv2.imshow('scaled_img',scaled_img)
     cv2.waitKey(0)
     
