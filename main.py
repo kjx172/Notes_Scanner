@@ -2,7 +2,6 @@ import cv2
 import preprocessing
 import documentDetector
 import pytesseract
-import datetime
 import os
 
 # Get the class from within the input folder
@@ -44,11 +43,11 @@ for filename in os.listdir(folder_path):
     # Use Tesseract to extract text
     extracted_text = pytesseract.image_to_string(doc_cropped, lang='eng')
 
-    # Generate file name based on current time
-    current_datetime = datetime.datetime.now()
-    datetime_string = current_datetime.strftime('%m-%d-%y_%H-%M-%S')
-    file_name = output_path + "\\" + datetime_string + ".txt"
+    # Generate file name based on input file name
+    clipped_input_name = os.path.splitext(os.path.basename(file_path))[0]
+    print(clipped_input_name)
+    output_file_name = output_path + "\\" + clipped_input_name +  "_output" + ".txt"
 
     # Write the read text to the output file
-    with open(file_name, "w", encoding="utf-8") as f:
+    with open(output_file_name, "w", encoding="utf-8") as f:
         f.write(extracted_text)
