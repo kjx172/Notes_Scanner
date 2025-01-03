@@ -25,6 +25,8 @@ def correctSkew(input_image):
     # Return the cv image (np array)
     if img_buffer is not None:
         return cv2.imdecode(img_buffer, cv2.IMREAD_UNCHANGED)
+    
+    return input_image
 
 def scaleImage(input_image):
     orig_width, orig_height = input_image.shape[1], input_image.shape[0]
@@ -37,7 +39,7 @@ def scaleImage(input_image):
 
 def preprocesser(input_image):
     # Normalize image to between 0 and 255 (Creates uniform range for different input images)
-    norm_img = np.zeros((input_image.shape[0], input_image.shape[1]))
+    norm_img = np.zeros((input_image.shape[0], input_image.shape[1]), dtype=np.uint8)
     normalized_img = cv2.normalize(input_image, norm_img, 0, 255, cv2.NORM_MINMAX)
 
     cv2.imwrite("output/normalized_img.jpg", normalized_img)
@@ -52,23 +54,27 @@ def preprocesser(input_image):
     scaled_img = scaleImage(unskewed_img)
     cv2.imwrite("output/scaled_img.jpg", scaled_img)
 
+    # Convert to grayscale before denoising
+    if len(scaled_img.shape) == 3:
+        gray_scaled = cv2.cvtColor(scaled_img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray_scaled = scaled_img.copy()
+
     # Removes any noise from the image
-    denoised_img = cv2.fastNlMeansDenoisingColored(scaled_img, None, 10, 10, 7, 15)
-    cv2.imwrite("output/denoised_img.jpg", denoised_img)
+    denoised_gray = cv2.fastNlMeansDenoising(gray_scaled, None, 10, 7, 21)
+    cv2.imwrite("output/denoised_img.jpg", denoised_gray)
 
     # Thinning and Skeletization
     # Eroding image may ruin legibility
-    kernel = np.ones((5,5),np.uint8)
-    eroded_img = cv2.erode(denoised_img, kernel, iterations = 1)
+    kernel = np.ones((3,3),np.uint8)
+    eroded_img = cv2.erode(denoised_gray, kernel, iterations = 1)
 
     cv2.imwrite("output/eroded_img.jpg", eroded_img)
 
-    # Converts image to gray scale
-    gray_img = cv2.cvtColor(eroded_img, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite("output/gray_img.jpg", gray_img)
-
     # Thresholds image
-    thresh_img = cv2.adaptiveThreshold(gray_img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv2.THRESH_BINARY,11,2)
+    _, thresh_img = cv2.threshold(eroded_img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     cv2.imwrite("output/thresh_img.jpg", thresh_img)
+
+
+    return thresh_img
     
