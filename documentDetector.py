@@ -18,7 +18,7 @@ def documentDetector(img):
     kernel = np.ones((5,5), np.uint8)
     closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
-    cv2.imwrite('output/closed_edges.jpg', closed_edges)
+    #cv2.imwrite('output/closed_edges.jpg', closed_edges)
 
     # Find the contours in closed edges
     contours, _ = cv2.findContours(closed_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -32,7 +32,7 @@ def documentDetector(img):
 
     # If there arent 4 corners the notebook shape wasnt detected
     if len(approx_poly) != 4:
-        print("No 4-corner contour detected; skipping perspective transform.")
+        #print("No 4-corner contour detected; skipping perspective transform.")
         return None
     
     # Reorder corners to follow top-left, top-right, bottom-right, and bottom-left order

@@ -42,17 +42,17 @@ def preprocesser(input_image):
     norm_img = np.zeros((input_image.shape[0], input_image.shape[1]), dtype=np.uint8)
     normalized_img = cv2.normalize(input_image, norm_img, 0, 255, cv2.NORM_MINMAX)
 
-    cv2.imwrite("output/normalized_img.jpg", normalized_img)
+    #cv2.imwrite("output/normalized_img.jpg", normalized_img)
 
     # Skew correction
     unskewed_img = correctSkew(normalized_img)
 
-    cv2.imwrite("output/unskewed_img.jpg", unskewed_img)
+    #cv2.imwrite("output/unskewed_img.jpg", unskewed_img)
 
     # Scale the image if under the reccomended pixel size for OCR for A4 letter paper
     # May have to change depending if the scaling ruins the legibility
     scaled_img = scaleImage(unskewed_img)
-    cv2.imwrite("output/scaled_img.jpg", scaled_img)
+    #cv2.imwrite("output/scaled_img.jpg", scaled_img)
 
     # Convert to grayscale before denoising
     if len(scaled_img.shape) == 3:
@@ -62,18 +62,18 @@ def preprocesser(input_image):
 
     # Removes any noise from the image
     denoised_gray = cv2.fastNlMeansDenoising(gray_scaled, None, 10, 7, 21)
-    cv2.imwrite("output/denoised_img.jpg", denoised_gray)
+    #cv2.imwrite("output/denoised_img.jpg", denoised_gray)
 
     # Thinning and Skeletization
     # Eroding image may ruin legibility
     kernel = np.ones((3,3),np.uint8)
     eroded_img = cv2.erode(denoised_gray, kernel, iterations = 1)
 
-    cv2.imwrite("output/eroded_img.jpg", eroded_img)
+    #cv2.imwrite("output/eroded_img.jpg", eroded_img)
 
     # Thresholds image
     _, thresh_img = cv2.threshold(eroded_img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    cv2.imwrite("output/thresh_img.jpg", thresh_img)
+    #cv2.imwrite("output/thresh_img.jpg", thresh_img)
 
 
     return thresh_img
