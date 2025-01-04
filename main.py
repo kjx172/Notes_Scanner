@@ -1,15 +1,22 @@
 import cv2
 import preprocessing
 import documentDetector
-import pytesseract
+from kraken import pageseg, rpred
+from kraken.lib import models
+from PIL import Image
 import os
+
+# Load Kraken model (loaded here to avoid repeatedly reloading).
+rec_model_path = '/path/to/recognition/model'
+model = models.load_any(rec_model_path)
+
 
 def main():
     exit_program = False
 
+    print("========================================")
     while not exit_program:
         # Get the class from within the input folder
-        print("========================================")
         print("(Enter EXIT to end program.)")
         input_folder_name = input("Enter the name of the folder in the input folder you would like to scan: ")
         
@@ -60,12 +67,11 @@ def main():
                 #print("Document detection failed. Using preprocessed image for OCR.")
                 doc_cropped = preprocessed_img
 
-            # Convert the cropped/processed image to grayscale (if it's not already)
-            if len(doc_cropped.shape) == 3:
-                doc_cropped = cv2.cvtColor(doc_cropped, cv2.COLOR_BGR2GRAY)
+            # Convert to PIL image for kraken use
+            pil_img = Image.fromarray(doc_cropped)
 
-            # Use Tesseract to extract text
-            extracted_text = pytesseract.image_to_string(doc_cropped, lang='eng')
+            # Run Kraken OCR
+            extracted_text = kraken_ocr(pil_img)
 
             # Generate file name based on input file name
             clipped_input_name = os.path.splitext(os.path.basename(file_path))[0]
@@ -77,6 +83,23 @@ def main():
 
         print("Files have been scanned")
         print("========================================")
+
+def kraken_ocr(pil_image):
+    """
+    Performs line segmentation and OCR using Kraken on a PIL Image.
+    Returns the recognized text as a single string.
+    """
+
+    # Segment page into lines
+    segmentation = pageseg.segment(pil_image)
+
+    # Recognize text line by line
+    lines = rpred.rpred(model, pil_image, segmentation)
+
+    # 4. Combine recognized lines into a single string
+    recognized_text = "\n".join(line["text"] for line in lines)
+    return recognized_text
+
 
 if __name__ == "__main__":
     main()
